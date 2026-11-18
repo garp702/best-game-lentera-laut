@@ -1,17 +1,21 @@
-// Pilot otomatis untuk staging screenshot: memainkan aturan yang sama seperti
-// pemain, dari dunia ber-seed yang sama — jadi tiap frame ?shot= adalah
-// momen nyata permainan, bukan gambar yang disusun manual.
+// Pilot otomatis untuk staging screenshot dan uji tuning: ia memainkan
+// aturan yang sama persis seperti pemain manusia — membaca dunia yang
+// sama, memilih dari lima arah gerak yang sama, dash dengan cooldown yang
+// sama — jadi frame ?shot= adalah momen permainan sungguhan dan hasil
+// bangku uji pilot adalah proksi kasar keterampilan pemain.
 //
-// Cara kerjanya: untuk tiap arah yang bisa ditempuh (diam, kiri, kanan,
-// atas, bawah), pilot memperkirakan kapan kapal akan tertabrak bila terus
-// ke arah itu, lalu memilih arah yang paling lama aman; di antara yang
-// aman, dipilih yang paling dekat ke mutiara terdekat.
+// Cara memilih arah: untuk tiap arah, perkirakan detik sampai tertabrak
+// bila terus ke sana (lookahead lurus); arah yang paling lama aman menang,
+// seri diputus oleh kedekatan ke target mutiara. Mutiara raja dihitung
+// dengan diskon jarak besar — pilot berani menyelam mendekati pusaran
+// demi 100 poin, persis godaan yang dirasakan pemain.
 import { BOAT, FIELD } from './config.js';
 import { clamp } from './random.js';
 
 const SAMPLE = 1 / 30;
 const HORIZON = 0.7;
 const HORIZON_AGGRESSIVE = 0.9;
+const GRAND_DISTANCE_DISCOUNT = 0.45;
 const DIRECTIONS = [
   { x: 0, y: 0 },
   { x: -1, y: 0 },
@@ -20,23 +24,26 @@ const DIRECTIONS = [
   { x: 0, y: 1 },
 ];
 
-// Cari mutiara terdekat yang masih di depan kapal.
-function nearestPearl(world) {
+// Target terbaik: mutiara biasa berbobot penuh, mutiara raja berbobot
+// diskon (terasa jauh lebih dekat daripada jarak sebenarnya).
+function bestTarget(world) {
   let best = null;
   let bestScore = Infinity;
-  for (const p of world.pearls) {
-    if (p.y < world.boat.y - 340 || p.y > world.boat.y + 40) continue;
-    const score = Math.abs(p.y - world.boat.y) + Math.abs(p.x - world.boat.x) * 0.6;
+  const consider = (x, y, weight) => {
+    if (y < world.boat.y - 340 || y > world.boat.y + 40) return;
+    const score = (Math.abs(y - world.boat.y) + Math.abs(x - world.boat.x) * 0.6) * weight;
     if (score < bestScore) {
       bestScore = score;
-      best = p;
+      best = { x, y };
     }
-  }
+  };
+  for (const p of world.pearls) consider(p.x, p.y, 1);
+  for (const g of world.grandPearls) consider(g.x, g.y, GRAND_DISTANCE_DISCOUNT);
   return best;
 }
 
-// Detik sampai kapal tertabrak bila bergerak ke `dir` selama `horizon`;
-// Infinity bila tidak pernah tertabrak dalam jendela itu.
+// Detik sampai kapal tertabrak bila bergerak lurus ke `dir` selama
+// `horizon`; Infinity bila jalur itu bersih sepanjang jendela.
 function timeToHit(world, dir, horizon) {
   const boat = world.boat;
   const speed = world.scrollSpeed();
@@ -65,24 +72,24 @@ function timeToHit(world, dir, horizon) {
 export function autopilot(world, aggressive) {
   const boat = world.boat;
   const horizon = aggressive ? HORIZON_AGGRESSIVE : HORIZON;
-  const pearl = nearestPearl(world);
+  const target = bestTarget(world);
   let bestDir = DIRECTIONS[0];
   let bestTime = -1;
-  let bestPearlDist = Infinity;
+  let bestTargetDist = Infinity;
   for (const dir of DIRECTIONS) {
     const t = timeToHit(world, dir, horizon);
     const nx = clamp(boat.x + dir.x * BOAT.speed * horizon, BOAT.minX, BOAT.maxX);
     const ny = clamp(boat.y + dir.y * BOAT.speed * horizon, BOAT.minY, BOAT.maxY);
-    const pearlDist = pearl ? Math.hypot(pearl.x - nx, pearl.y - ny) : 0;
-    // Arah yang tertabrak duluan kalah; seri diputus oleh jarak ke mutiara.
-    if (t > bestTime || (t === bestTime && pearlDist < bestPearlDist)) {
+    const targetDist = target ? Math.hypot(target.x - nx, target.y - ny) : 0;
+    // Arah yang tertabrak duluan kalah; seri diputus oleh jarak ke target.
+    if (t > bestTime || (t === bestTime && targetDist < bestTargetDist)) {
       bestTime = t;
-      bestPearlDist = pearlDist;
+      bestTargetDist = targetDist;
       bestDir = dir;
     }
   }
-  // Dash hanya saat semua arah berbahaya dalam waktu dekat: jalan keluar
-  // darurat, bukan kebiasaan.
+  // Dash adalah jalan keluar darurat saat semua arah segera berbahaya,
+  // bukan kebiasaan — sama seperti pemain yang menahan dash-nya.
   const dash = bestTime < 0.28 && boat.dashCooldown <= 0;
   return { x: bestDir.x, y: bestDir.y, dash };
 }

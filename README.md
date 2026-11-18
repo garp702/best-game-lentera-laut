@@ -12,7 +12,7 @@ lenteramu padam.
 ## Cara main
 
 Sajikan `game/` dengan server statis apa pun lalu buka `index.html` di
-desktop Chrome, misalnya dengan server bawaan kit:
+desktop Chrome, misalnya dengan server bawaan repo ini:
 
 ```sh
 node serve.ts   # lalu buka http://localhost:8080
@@ -30,20 +30,27 @@ WebAudio — tanpa file audio.
 ## Gamenya
 
 - **Pelayaran:** jarak bertambah mengikuti arus; sampai **1.200 m** untuk
-  menang (+500 poin). Tiap 300 m naik level: arus makin cepat, karang makin
-  rapat, palet laut berubah sampai fajar.
+  menang (+500 poin). Tiap 300 m naik level: arus makin cepat, karang
+  makin rapat, celah aman di tiap baris karang menyempit, palet laut
+  berubah sampai fajar.
 - **Mutiara:** 10 poin tiap satu; kombo beruntun (dalam 2,5 detik)
   melipatgandakan sampai **×5**.
-- **Bahaya:** karang (tabrakan = −1 nyawa), pusaran (menarik kapal, inti
-  mematikan), tiga nyawa berbentuk lentera.
-- **Dash:** ledakan kecepatan untuk lolos dari celah sempit atau lepas dari
-  pusaran — pilihan yang berarti karena ada cooldown.
+- **Mutiara raja:** mutiara emas besar yang langka dan selalu muncul
+  menempel di pusaran. Nilainya **100 poin** sebelum pengali kombo —
+  mengambilnya berarti menyelam ke tepi pusaran yang sedang menarik
+  kapalmu. Ambil, atau lewati: itu pilihanmu, empat kali semenjak
+  berlayar.
+- **Bahaya:** karang (tabrakan = −1 nyawa), pusaran (menarik kapal sejak
+  level 1, intinya mematikan), tiga nyawa berbentuk lentera.
+- **Dash:** ledakan kecepatan untuk lolos dari celah sempit atau lepas
+  dari pusaran — pilihan yang berarti karena ada cooldown.
 - **HUD:** skor, mutiara, bilah jarak, nyawa, level, meter dash, kombo.
 - **Layar:** judul (dengan cara main + skor terbaik), jeda, menang, kalah —
   semuanya dengan tombol mulai ulang.
 
 ## Screenshot
 
-`?shot=start|play|action|win&seed=1` mementaskan frame deterministik dari
-kode game itu sendiri untuk pengambilan gambar (autopilot memainkan aturan
-yang sama seperti pemain).
+`?shot=start|play|action|win|lose&seed=N` mementaskan frame deterministik
+dari kode game itu sendiri untuk pengambilan gambar (autopilot memainkan
+aturan yang sama seperti pemain, termasuk mati sungguhan pada adegan
+`lose`).

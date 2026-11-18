@@ -1,7 +1,8 @@
-// Lentera Laut — bootstrap: kanvas, loop frame, mesin layar
-// (judul → main → jeda → menang/kalah), dan mode staging ?shot= untuk
-// screenshot. Loop memakai langkah tetap 1/60 dtk supaya simulasi stabil
-// di semua kecepatan frame.
+// Lentera Laut — titik masuk browser: menyiapkan kanvas, menjalankan
+// loop berlangkah tetap 1/60 detik, dan menggerakkan mesin layar
+// (judul → main → jeda → menang/kalah). Mode ?shot= memotong loop:
+// satu adegan dipentaskan deterministik, digambar sekali, lalu ditandai
+// siap untuk difoto.
 import { FIELD, STEP } from './config.js';
 import { Input } from './input.js';
 import { SoundBank } from './audio.js';
@@ -52,6 +53,7 @@ let best = loadBest();
 let lastTime = 0;
 let accumulator = 0;
 
+// Diekspos untuk uji otomatis dan debugging: state permainan saat ini.
 window.__game = { world, get screen() { return screen; }, input };
 window.__shotReady = false;
 
@@ -64,11 +66,7 @@ function startRun() {
   screen = SCREEN_PLAY;
   sound.unlock();
   sound.click();
-  announce('Pelayaran dimulai. Kumpulkan mutiara, hindari karang.');
-}
-
-function restartRun() {
-  startRun();
+  announce('Pelayaran dimulai. Kumpulkan mutiara, hindari karang dan pusaran.');
 }
 
 function endRunIfNeeded() {
@@ -96,13 +94,14 @@ function frame(time) {
   lastTime = time;
   if (dt > 0.25) dt = 0.25;
 
-  // Tombol global: M bisu di layar apa pun.
+  // M membisukan di layar mana pun.
   if (input.wasPressed('KeyM')) {
     const muted = sound.toggleMuted();
     announce(muted ? 'Suara dimatikan.' : 'Suara dinyalakan.');
   }
 
   if (screen === SCREEN_TITLE) {
+    // Judul hidup di atas demo tanpa kerusakan.
     world.demo = true;
     world.step(STEP, { x: 0, y: 0 }, null, false, null);
     if (input.dashPressed() || input.wasPressed('Enter') || input.wasPressed('Mouse')) {
@@ -133,11 +132,14 @@ function frame(time) {
       screen = SCREEN_PLAY;
       announce('Lanjut berlayar.');
     } else if (input.wasPressed('KeyR')) {
-      restartRun();
+      startRun();
     }
   } else if (screen === SCREEN_WIN || screen === SCREEN_OVER) {
+    // Guncangan sisa tabrakan terakhir meluruh di layar akhir — tanpa
+    // ini layar menang/kalah bergetar selamanya karena dunia berhenti.
+    world.shake = Math.max(0, world.shake - dt);
     if (input.wasPressed('KeyR') || input.dashPressed()) {
-      restartRun();
+      startRun();
     }
   }
 
@@ -146,7 +148,7 @@ function frame(time) {
   window.__shotReady = true;
 }
 
-// Mode staging screenshot: jalankan satu adegan, gambar sekali, tandai siap.
+// Mode staging: pentaskan satu adegan, gambar satu frame, selesai.
 if (shotName) {
   const staged = stageShot(shotName, world, null);
   screen = staged.screen;
@@ -158,6 +160,7 @@ if (shotName) {
     screen,
     score: world.score,
     pearls: world.pearlsCollected,
+    grand: world.grandCollected,
     lives: world.lives,
     distance: Math.floor(world.distance),
     level: world.level,

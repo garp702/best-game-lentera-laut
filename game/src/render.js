@@ -1,6 +1,10 @@
-// Semua gambar di canvas 2D: laut malam, kapal lentera, mutiara, karang,
-// pusaran, HUD, dan layar judul/jeda/menang/kalah. Render tidak mengubah
-// dunia — hanya membaca state — jadi aman dipanggil kapan saja.
+// Semua yang terlihat di Lentera Laut digambar di sini: laut malam,
+// kapal, mutiara, mutiara raja, karang, pusaran, HUD, dan layar-layar
+// (judul, jeda, menang, kalah). Render murni membaca state dunia dan
+// tidak pernah mengubahnya, jadi ia aman dipanggil dari loop maupun dari
+// staging screenshot. Mutiara raja sengaja digambar jauh lebih besar dan
+// bercincin oranye berputar — godaan 100 poin harus terbaca sekilas,
+// bahkan pada contact sheet yang dikecilkan.
 import { BOAT, FIELD, PALETTES, VOYAGE_METERS } from './config.js';
 import { clamp } from './random.js';
 
@@ -48,7 +52,7 @@ function drawBoat(ctx, world) {
   ctx.translate(boat.x, boat.y);
   if (blink) ctx.globalAlpha = 0.35;
   ctx.rotate(boat.tilt);
-  // Cahaya lentera di haluan.
+  // Lingkaran cahaya lentera di haluan.
   const glow = ctx.createRadialGradient(0, -6, 4, 0, -6, 70);
   glow.addColorStop(0, 'rgba(255, 209, 102, 0.55)');
   glow.addColorStop(1, 'rgba(255, 209, 102, 0)');
@@ -56,7 +60,7 @@ function drawBoat(ctx, world) {
   ctx.beginPath();
   ctx.arc(0, -6, 70, 0, Math.PI * 2);
   ctx.fill();
-  // Lambung kapal.
+  // Lambung.
   ctx.fillStyle = '#8a5a2b';
   ctx.beginPath();
   ctx.moveTo(-26, 4);
@@ -67,7 +71,7 @@ function drawBoat(ctx, world) {
   ctx.fill();
   ctx.fillStyle = '#a9743c';
   ctx.fillRect(-26, 2, 52, 4);
-  // Tiang + layar.
+  // Tiang dan layar.
   ctx.strokeStyle = '#5d3a1a';
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -81,7 +85,7 @@ function drawBoat(ctx, world) {
   ctx.lineTo(20, -4);
   ctx.closePath();
   ctx.fill();
-  // Lentera di haluan.
+  // Lentera haluan.
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
   ctx.arc(16, -8, 6, 0, Math.PI * 2);
@@ -111,6 +115,48 @@ function drawPearl(ctx, pearl) {
   ctx.beginPath();
   ctx.arc(pearl.x - 3, y - 3, 4, 0, Math.PI * 2);
   ctx.fill();
+}
+
+// Mutiara raja: badan hampir dua kali mutiara biasa, halo oranye lebar,
+// dan cincin putus-putus yang berputar mengelilinginya. Pada ukuran
+// thumbnail pun ia langsung terbaca sebagai "yang ini istimewa".
+function drawGrandPearl(ctx, grand) {
+  const bob = Math.sin(grand.phase) * 2;
+  const y = grand.y + bob;
+  const pulse = 1 + Math.sin(grand.phase * 1.7) * 0.08;
+  ctx.save();
+  ctx.translate(grand.x, y);
+  const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, 52);
+  glow.addColorStop(0, 'rgba(255, 179, 107, 0.95)');
+  glow.addColorStop(1, 'rgba(255, 179, 107, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, 52, 0, Math.PI * 2);
+  ctx.fill();
+  // Cincin berputar: empat busur oranye terang.
+  ctx.strokeStyle = '#ffb36b';
+  ctx.lineWidth = 4;
+  const ringR = (grand.r + 11) * pulse;
+  for (let i = 0; i < 4; i += 1) {
+    const start = grand.phase * 0.9 + i * (Math.PI / 2);
+    ctx.beginPath();
+    ctx.arc(0, 0, ringR, start, start + Math.PI * 0.36);
+    ctx.stroke();
+  }
+  // Badan mutiara: emas hangat dengan kilau putih.
+  ctx.fillStyle = '#ffcf87';
+  ctx.beginPath();
+  ctx.arc(0, 0, grand.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffe9bd';
+  ctx.beginPath();
+  ctx.arc(-4, -4, grand.r * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(-6, -7, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawRock(ctx, rock) {
@@ -165,13 +211,13 @@ function drawSea(ctx, world, palette) {
   grad.addColorStop(1, palette.seaBottom);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
-  // Bintang berkelip di langit.
+  // Bintang berkelip.
   for (const star of world.stars) {
     const alpha = 0.35 + 0.65 * Math.abs(Math.sin(world.time * star.twinkle + star.phase));
     ctx.fillStyle = `rgba(255, 255, 240, ${alpha.toFixed(2)})`;
     ctx.fillRect(star.x, star.y, star.size, star.size);
   }
-  // Bulan.
+  // Bulan dan lingkaran cahayanya.
   ctx.fillStyle = palette.moon;
   ctx.beginPath();
   ctx.arc(1120, 92, 42, 0, Math.PI * 2);
@@ -180,7 +226,7 @@ function drawSea(ctx, world, palette) {
   ctx.beginPath();
   ctx.arc(1120, 92, 58, 0, Math.PI * 2);
   ctx.fill();
-  // Garis ombak bergerak.
+  // Garis-garis ombak yang bergerak mengikuti fase dunia.
   ctx.strokeStyle = 'rgba(140, 200, 255, 0.16)';
   ctx.lineWidth = 2;
   for (let row = 0; row < 5; row += 1) {
@@ -212,7 +258,7 @@ function drawHud(ctx, world, ui) {
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 34px ${FONT}`;
   ctx.fillText(String(world.score), 24, 56);
-  // Mutiara terkumpul.
+  // Mutiara terkumpul (raja dihitung di dalamnya).
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
   ctx.arc(196, 44, 8, 0, Math.PI * 2);
@@ -220,7 +266,7 @@ function drawHud(ctx, world, ui) {
   ctx.fillStyle = '#ffffff';
   ctx.font = `700 22px ${FONT}`;
   ctx.fillText(`× ${world.pearlsCollected}`, 210, 52);
-  // Jarak pelayaran di tengah.
+  // Bilah jarak di tengah, level di dalamnya.
   const barX = 430;
   const barW = 420;
   const progress = clamp(world.distance / VOYAGE_METERS, 0, 1);
@@ -237,7 +283,7 @@ function drawHud(ctx, world, ui) {
   ctx.fillStyle = '#ffffff';
   ctx.font = `700 13px ${FONT}`;
   ctx.fillText(`LV ${world.level}`, barX + barW / 2, 46);
-  // Nyawa (lentera) + dash di kanan.
+  // Nyawa (lentera) dan meter dash di kanan.
   for (let i = 0; i < 3; i += 1) {
     drawLanternIcon(ctx, 940 + i * 34, 34, i < world.lives);
   }
@@ -262,14 +308,14 @@ function drawHud(ctx, world, ui) {
     ctx.font = `700 13px ${FONT}`;
     ctx.fillText('BISU (M)', 1050, 62);
   }
-  // Kombo di atas kapal.
+  // Kombo melayang di atas kapal.
   if (world.multiplier > 1) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd166';
     ctx.font = `800 26px ${FONT}`;
     ctx.fillText(`KOMBO ×${world.multiplier}`, world.boat.x, world.boat.y - 52);
   }
-  // Petunjuk bawah, samar.
+  // Petunjuk kontrol samar di bawah.
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
   ctx.font = `500 14px ${FONT}`;
@@ -300,35 +346,39 @@ function drawTitle(ctx, world, ui) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd166';
   ctx.font = `800 84px ${FONT}`;
-  ctx.fillText('LENTERA LAUT', FIELD.width / 2, 210);
+  ctx.fillText('LENTERA LAUT', FIELD.width / 2, 200);
   ctx.fillStyle = '#ffffff';
   ctx.font = `500 26px ${FONT}`;
-  ctx.fillText('Pelayaran malam sejauh 1.200 meter — kumpulkan mutiara, hindari karang.', FIELD.width / 2, 262);
+  ctx.fillText('Pelayaran malam sejauh 1.200 meter — kumpulkan mutiara, hindari karang.', FIELD.width / 2, 252);
   ctx.font = `500 20px ${FONT}`;
   ctx.fillStyle = '#cfe0f5';
-  ctx.fillText('Gerak: ← → ↑ ↓ atau WASD / mouse  ·  SPASI: dash  ·  P: jeda  ·  M: suara', FIELD.width / 2, 320);
-  ctx.fillText('Tiga lentera = tiga nyawa. Pusaran menarik kapalmu. Sampai di 1.200 m untuk menang.', FIELD.width / 2, 352);
+  ctx.fillText('Gerak: ← → ↑ ↓ atau WASD / mouse  ·  SPASI: dash  ·  P: jeda  ·  M: suara', FIELD.width / 2, 306);
+  ctx.fillText('Tiga lentera = tiga nyawa. Pusaran menarik kapalmu sejak awal pelayaran.', FIELD.width / 2, 336);
+  ctx.fillStyle = '#ffb36b';
+  ctx.font = `700 20px ${FONT}`;
+  ctx.fillText('Mutiara raja emas menempel di pusaran — 100 poin. Ambil kalau berani.', FIELD.width / 2, 368);
   if (ui.best > 0) {
     ctx.fillStyle = '#7fe3c0';
     ctx.font = `700 22px ${FONT}`;
-    ctx.fillText(`Skor terbaik: ${ui.best}`, FIELD.width / 2, 402);
+    ctx.fillText(`Skor terbaik: ${ui.best}`, FIELD.width / 2, 412);
   }
   const blink = Math.floor(world.time * 2) % 2 === 0;
   if (blink) {
     ctx.fillStyle = '#ffd166';
     ctx.font = `800 30px ${FONT}`;
-    ctx.fillText('TEKAN SPASI / KLIK UNTUK BERLAYAR', FIELD.width / 2, 480);
+    ctx.fillText('TEKAN SPASI / KLIK UNTUK BERLAYAR', FIELD.width / 2, 486);
   }
   ctx.restore();
 }
 
 function drawEndStats(ctx, world) {
-  // Subjudul panel overlay ada di y=310; statistik dan ajakan restart
-  // diletakkan di bawahnya supaya tidak bertumpuk.
+  // Statistik diletakkan di bawah subjudul panel (y=310) agar tidak
+  // bertumpuk; ajakan restart menyusul di bawahnya.
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
   ctx.font = `500 22px ${FONT}`;
-  ctx.fillText(`Skor ${world.score}   ·   Mutiara ${world.pearlsCollected}   ·   Jarak ${Math.floor(world.distance)} m   ·   Waktu ${Math.floor(world.time)} dtk`, FIELD.width / 2, 362);
+  const grandPart = world.grandCollected > 0 ? `   ·   Mutiara raja ${world.grandCollected}` : '';
+  ctx.fillText(`Skor ${world.score}   ·   Mutiara ${world.pearlsCollected}${grandPart}   ·   Jarak ${Math.floor(world.distance)} m   ·   Waktu ${Math.floor(world.time)} dtk`, FIELD.width / 2, 362);
   ctx.fillStyle = '#ffd166';
   ctx.font = `800 26px ${FONT}`;
   ctx.fillText('Tekan R untuk berlayar lagi', FIELD.width / 2, 418);
@@ -343,6 +393,7 @@ export function draw(ctx, world, screen, ui) {
   }
   drawSea(ctx, world, palette);
   for (const pearl of world.pearls) drawPearl(ctx, pearl);
+  for (const grand of world.grandPearls) drawGrandPearl(ctx, grand);
   for (const whirl of world.whirlpools) drawWhirlpool(ctx, whirl);
   for (const rock of world.rocks) drawRock(ctx, rock);
   for (const pt of world.particles) {

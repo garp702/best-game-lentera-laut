@@ -1,6 +1,9 @@
-// Input keyboard + mouse. Tombol arah/WASD mengemudikan kapal, spasi dash,
-// P/Esc jeda, M bisu, R mulai ulang, Enter/Space juga memulai dari layar judul.
-// Mouse: kapal mengikuti posisi kursor selagi tombol mouse ditekan.
+// Input Lentera Laut: keyboard dan mouse dibaca di sini, diterjemahkan
+// menjadi pertanyaan-pertanyaan sederhana untuk loop utama — vektor gerak
+// dari tombol yang sedang ditekan, dan tepi tekan (sekali per penekanan)
+// untuk aksi sesaat seperti dash, jeda, dan mulai ulang.
+// Panah/WASD mengemudi, spasi dash, P/Esc jeda, R ulang, M bisu; mouse
+// mengemudi selagi tombolnya ditahan (kapal mengejar kursor).
 import { FIELD } from './config.js';
 
 const MOVE_KEYS = {
@@ -54,7 +57,8 @@ export class Input {
     window.removeEventListener('mouseup', this.onMouseUp);
   }
 
-  // Vektor gerak dari tombol yang sedang ditekan (-1..1 per sumbu).
+  // Vektor gerak -1..1 per sumbu dari semua tombol arah yang ditekan;
+  // diagonal dinormalkan supaya tidak lebih cepat dari lurus.
   moveVector() {
     let x = 0;
     let y = 0;
@@ -73,7 +77,7 @@ export class Input {
     return { x, y };
   }
 
-  // Tepi tekan (sekali per penekanan) untuk aksi: dash, jeda, mulai, restart.
+  // Apakah `code` baru saja ditekan pada frame ini?
   wasPressed(code) {
     return this.pressed.has(code);
   }
@@ -82,7 +86,7 @@ export class Input {
     return this.pressed.has('Space');
   }
 
-  // Dipanggil di akhir tiap frame: tepi tekan hanya berlaku satu frame.
+  // Dipanggil di akhir frame: tepi tekan hanya hidup satu frame.
   endFrame() {
     this.pressed.clear();
   }

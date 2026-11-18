@@ -1,8 +1,7 @@
-// Server statis kecil untuk game/ (Node 22, standard library only), supaya
-// entri bisa dimainkan lokal tanpa build step: `node serve.ts` menyajikan
-// game/ di http://localhost:8080. Hanya keperluan pengembangan, bukan
-// server untuk internet: menolak path di luar game/ dan tidak melakukan
-// hal pintar lainnya.
+// Server statis mungil untuk memainkan game/ secara lokal tanpa build
+// step: `node serve.ts` menyajikan game/ di http://localhost:8080
+// (--port N untuk port lain). Hanya untuk pengembangan di mesin sendiri:
+// menolak path yang keluar dari game/ dan tidak melakukan hal lain.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';

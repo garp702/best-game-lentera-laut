@@ -1,6 +1,7 @@
-// Semua efek suara disintesis dengan WebAudio — tanpa file audio sama sekali.
-// AudioContext baru dibuat saat gestur pertama pemain (kebijakan autoplay),
-// jadi staging screenshot di headless tetap diam dan tanpa error.
+// Seluruh suara Lentera Laut disintesis WebAudio saat itu juga — tidak ada
+// satu pun file audio. Konteks audio baru lahir pada gestur pertama
+// pemain (kebijakan autoplay browser), jadi staging screenshot dan uji
+// headless berjalan diam tanpa error.
 export class SoundBank {
   constructor() {
     this.ctx = null;
@@ -30,6 +31,8 @@ export class SoundBank {
     return this.muted;
   }
 
+  // Satu nada berbalut amplop: naik cepat, meluruh halus; slideTo > 0
+  // membuat nada meluncur ke frekuensi tujuan.
   tone(freq, seconds, type, volume, when = 0, slideTo = 0) {
     if (!this.ctx || this.muted) return;
     const t0 = this.ctx.currentTime + when;
@@ -47,6 +50,7 @@ export class SoundBank {
     osc.stop(t0 + seconds + 0.05);
   }
 
+  // Semburan derau berfilter untuk dentuman dan desis dash.
   noise(seconds, volume, filterFreq, when = 0) {
     if (!this.ctx || this.muted) return;
     const t0 = this.ctx.currentTime + when;
@@ -67,20 +71,29 @@ export class SoundBank {
     source.start(t0);
   }
 
-  // Mutiara: denting naik mengikuti kombo (nada makin tinggi).
+  // Mutiara biasa: denting yang nadanya naik mengikuti kombo.
   pearl(combo) {
     const base = 660 * Math.pow(1.059463, Math.min(combo, 12));
     this.tone(base, 0.18, 'sine', 0.5);
     this.tone(base * 1.5, 0.22, 'sine', 0.3, 0.05);
   }
 
-  // Karang: dentuman rendah + derau.
+  // Mutiara raja: kaskade tiga nada cerah di atas nada dasar yang hangat —
+  // terdengar jelas berbeda dari denting mutiara biasa.
+  grand() {
+    this.tone(440, 0.35, 'triangle', 0.35);
+    this.tone(880, 0.2, 'sine', 0.5, 0.02);
+    this.tone(1174, 0.24, 'sine', 0.45, 0.09);
+    this.tone(1568, 0.34, 'sine', 0.4, 0.16);
+  }
+
+  // Karang: dentuman rendah plus derau tumbukan.
   thud() {
     this.tone(110, 0.25, 'triangle', 0.7, 0, 55);
     this.noise(0.2, 0.4, 400);
   }
 
-  // Dash: sapuan derau naik.
+  // Dash: desis naik dan sahutan nada cepat.
   dash() {
     this.noise(0.3, 0.35, 2400);
     this.tone(300, 0.25, 'sawtooth', 0.12, 0, 900);
@@ -93,14 +106,14 @@ export class SoundBank {
     this.tone(784, 0.22, 'square', 0.25, 0.2);
   }
 
-  // Menang: fanfare empat nada.
+  // Menang: fanfare empat nada ditutup nada tinggi.
   win() {
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => this.tone(freq, 0.3, 'triangle', 0.4, i * 0.13));
     this.tone(1319, 0.5, 'sine', 0.3, 0.52);
   }
 
-  // Kalah: nada turun.
+  // Kalah: dua nada turun, pelayaran selesai.
   over() {
     this.tone(392, 0.3, 'sine', 0.4, 0, 196);
     this.tone(294, 0.45, 'sine', 0.4, 0.25, 147);
